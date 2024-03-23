@@ -1,55 +1,55 @@
-def encrypt(key: list, rounds: int, message: bytes):
-    expandedMsg = expandMessage(message)
-    
-    enc_msg = bytes()
-    
-    for i in range(0, len(expandedMsg), 8):
-        messageBlock = expandedMsg[i:i+8]
-        encryptedBlock = feistel(key, rounds, messageBlock)
-        enc_msg += encryptedBlock
+BLOCK_SIZE = 8
 
+def encrypt(key: list, rounds: int, message: bytes):
+    expanded_msg = expand_message(message)
+    enc_msg = feistel(key, rounds, expanded_msg)
     return enc_msg
 
 def decrypt(key: list, rounds: int, enc_msg: bytes):
-    dec_msg = bytes()
-    
-    for i in range(0, len(enc_msg), 8):
-        messageBlock = enc_msg[i:i+8]
-        decryptedBlock = feistel(key, rounds, messageBlock)
-        dec_msg += decryptedBlock
-
+    dec_msg = feistel(key, rounds, enc_msg)
     return dec_msg.strip()
 
-def feistel(key: list, rounds: int, block: bytes):
-    splittedBlockLen = len(block)//2
-    lBlock = block[:splittedBlockLen]
-    rBlock = block[splittedBlockLen:]
+def feistel(key: list, rounds: int, msg: bytes):
+    mod_msg = bytes()
+
+    for i in range(0, len(msg), BLOCK_SIZE):
+        message_block = msg[i:i+BLOCK_SIZE]
+        mod_block = feistel_round(key, rounds, message_block)
+        mod_msg += mod_block
+    
+    return mod_msg
+
+
+def feistel_round(key: list, rounds: int, block: bytes):
+    splitted_block_len = len(block)//2
+    lBlock = block[:splitted_block_len]
+    rBlock = block[splitted_block_len:]
     
     if rounds == 0:
         return rBlock + lBlock
     else:
         tmp = shuffle(rBlock, key)
-        return feistel(key, rounds-1, rBlock+xor(tmp, lBlock))
+        return feistel_round(key, rounds-1, rBlock+xor(tmp, lBlock))
 
 def xor(block1: list, block2: list):
-    xorBlock = []
+    xor_block = []
     
     for i in range(len(block1)):
-        xorBlock.append(block1[i]^block2[i])
+        xor_block.append(block1[i]^block2[i])
         
-    return bytes(xorBlock)
+    return bytes(xor_block)
     
 def shuffle(block: bytes, key: list):
-    newBlock = []
+    new_block = []
 
     for i in range(len(block)):
-        newBlock.append(block[key[i]])
+        new_block.append(block[key[i]])
 
-    return bytes(newBlock)
+    return bytes(new_block)
 
-def expandMessage(message: bytes):
-    msgPadding = (8 - (len(message) % 8)) % 8
+def expand_message(message: bytes):
+    msg_padding = (BLOCK_SIZE - (len(message) % BLOCK_SIZE)) % BLOCK_SIZE
 
-    expandedMsg = message + (" " * msgPadding).encode('ascii')
+    expanded_msg = message + (" " * msg_padding).encode('ascii')
     
-    return expandedMsg
+    return expanded_msg
